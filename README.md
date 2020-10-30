@@ -1,1 +1,3 @@
 # DiningPhilosophers
+
+The Dining Philosophers
