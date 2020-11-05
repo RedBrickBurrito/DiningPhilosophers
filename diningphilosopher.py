@@ -19,7 +19,7 @@ global room
 room = threading.Semaphore(4)
 
 root = Tk()
-root.geometry("700x700") 
+root.geometry("700x700")
 
 global eatingImg
 eatingImg = PhotoImage(file="./img/eating.png")
@@ -34,6 +34,7 @@ waitingImg = PhotoImage(file="./img/waiting.png")
 waitingImg = waitingImg.subsample(4, 4)
 
 isRunning = False
+deadlock = False
 
 canvas = Canvas(root, bg="gray")
 
@@ -58,33 +59,42 @@ philosophers.append(ph3)
 philosophers.append(ph4)
 philosophers.append(ph5)
 
+
 def philosopher(id):
 
-    maxThinkDelay = 10
-    maxEatDelay = 10
+    maxThinkDelay = 6
+    maxEatDelay = 5
 
     running = True
 
     wsem = threading.Semaphore(1)
+    global deadlock
 
     def think():
         newText = str(id) + ": thinking"
         philosophers[id].config(text=newText, image=thinkingImg)
         print("Thinking " + str(id))
 
-        if keepRunning():
-            time.sleep(rand.randint(0, maxThinkDelay))
+        if not deadlock:
+            if keepRunning():
+                time.sleep(rand.randint(0, maxThinkDelay))
+                philosophers[id].config(image=waitingImg)
+        else:
             philosophers[id].config(image=waitingImg)
+            wsem.acquire()
 
     def eat():
         newText = str(id) + ": eating"
         philosophers[id].config(text=newText, image=eatingImg)
         print("Eating " + str(id))
-        if keepRunning():
-            time.sleep(rand.randint(0, maxEatDelay))
-            philosophers[id].config(text="finished", image='')
 
-        
+        if not deadlock:
+            if keepRunning():
+                time.sleep(rand.randint(0, maxEatDelay))
+                philosophers[id].config(text="Finished", image='')
+        else:
+            philosophers[id].config(image=waitingImg)
+            wsem.acquire()
 
     def keepRunning():
         wsem.acquire()
@@ -106,7 +116,9 @@ def philosopher(id):
         else:
             return 0
 
+
 futures = []
+
 
 def startSimulation():
     global isRunning
@@ -117,14 +129,25 @@ def startSimulation():
         tempFutures = futures[i]
         tempFutures.start()
 
+
 def stopSimulation():
     global isRunning
     isRunning = False
 
+
+def forceDeadlock():
+    global deadlock
+
+    deadlock = True
+    print("Activated Deadlock")
+
+
 startButton = Button(text="Start Simulation", command=startSimulation)
-startButton.place(relx=0.35, rely=0.9, anchor="center")
+startButton.place(relx=0.15, rely=0.9, anchor="center")
 stopButton = Button(text="Stop Simulation", command=stopSimulation)
-stopButton.place(relx=0.65, rely=0.9, anchor="center")
+stopButton.place(relx=0.50, rely=0.9, anchor="center")
+deadlockButton = Button(text="Force Deadlock", command=forceDeadlock)
+deadlockButton.place(relx=0.85, rely=0.9, anchor="center")
 
 if __name__ == '__main__':
     # with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -132,5 +155,5 @@ if __name__ == '__main__':
 
     #     for i in range(numPhilosophers):
     #         futures.append(executor.submit(philosopher, i))
-        
+
     root.mainloop()
