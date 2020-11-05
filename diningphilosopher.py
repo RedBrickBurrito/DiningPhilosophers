@@ -68,9 +68,9 @@ def philosopher(id):
     running = True
 
     wsem = threading.Semaphore(1)
-    global deadlock
 
     def think():
+        global deadlock
         newText = str(id) + ": thinking"
         philosophers[id].config(text=newText, image=thinkingImg)
         print("Thinking " + str(id))
@@ -81,9 +81,12 @@ def philosopher(id):
                 philosophers[id].config(image=waitingImg)
         else:
             philosophers[id].config(image=waitingImg)
-            wsem.acquire()
+            for _ in range(numPhilosophers):
+                wsem.acquire()
+            deadlock = False
 
     def eat():
+        global deadlock
         newText = str(id) + ": eating"
         philosophers[id].config(text=newText, image=eatingImg)
         print("Eating " + str(id))
@@ -94,7 +97,9 @@ def philosopher(id):
                 philosophers[id].config(text="Finished", image='')
         else:
             philosophers[id].config(image=waitingImg)
-            wsem.acquire()
+            for _ in range(numPhilosophers):
+                wsem.acquire()
+            deadlock = False
 
     def keepRunning():
         wsem.acquire()
